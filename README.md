@@ -29,4 +29,3 @@ By the end of this lab, you will:
 
 2. What is the optimal number of simulations to run?
 
-**Reflection
