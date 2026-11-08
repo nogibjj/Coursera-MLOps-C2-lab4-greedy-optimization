@@ -4,12 +4,17 @@
 This is a command-line tool that figures out the shortest distance to visit all cities in a list.
 """
 
+import json
+import os
+import time
+
 import geopy
 import geopy.distance
 import pandas as pd
 from random import shuffle
 import click
 
+CACHE_FILE = "city_coords_cache.json"
 
 # build a function that takes variable length argument of strings and returns a list of cities
 def my_cities(*args):
@@ -18,8 +23,12 @@ def my_cities(*args):
 
 
 def create_cities_dataframe(cities=None):
-    """Create a Pandas DataFrame of cities and their latitudes and longitudes"""
+    """Create a Pandas DataFrame of cities and their latitudes and longitudes.
 
+    Coordinates are cached in ``CACHE_FILE`` so repeated runs do not hit
+    Nominatim, which requires clients to cache results and rate-limit
+    themselves to at most one request per second.
+    """
     if cities is None:
         cities = [
             "New York",
@@ -44,24 +53,32 @@ def create_cities_dataframe(cities=None):
             "San Diego",
         ]
 
-    # create a list to hold the latitudes and longitudes
+    cache = {}
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, encoding="utf-8") as fh:
+            cache = json.load(fh)
+
     latitudes = []
     longitudes = []
-    # loop through the cities list and get the latitudes and longitudes
     for city in cities:
-        geolocator = geopy.geocoders.Nominatim(user_agent="tsp_pandas")
-        location = geolocator.geocode(city)
-        latitudes.append(location.latitude)
-        longitudes.append(location.longitude)
-    # create a dataframe from the cities, latitudes, and longitudes
-    df = pd.DataFrame(
+        if city not in cache:
+            geolocator = geopy.geocoders.Nominatim(user_agent="tsp_pandas")
+            location = geolocator.geocode(city, timeout=10)
+            cache[city] = [location.latitude, location.longitude]
+            time.sleep(1.1)
+        latitudes.append(cache[city][0])
+        longitudes.append(cache[city][1])
+
+    with open(CACHE_FILE, "w", encoding="utf-8") as fh:
+        json.dump(cache, fh, indent=2)
+
+    return pd.DataFrame(
         {
             "city": cities,
             "latitude": latitudes,
             "longitude": longitudes,
         }
     )
-    return df
 
 
 def tsp(cities_df):

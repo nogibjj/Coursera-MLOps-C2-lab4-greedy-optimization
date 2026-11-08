@@ -127,3 +127,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+city_coords_cache.json
