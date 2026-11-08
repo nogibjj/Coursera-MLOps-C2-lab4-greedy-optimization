@@ -4,12 +4,12 @@
 This is a command-line tool that figures out the shortest distance to visit all cities in a list.
 """
 
-
 import geopy
 import geopy.distance
 import pandas as pd
 from random import shuffle
 import click
+
 
 # build a function that takes variable length argument of strings and returns a list of cities
 def my_cities(*args):
